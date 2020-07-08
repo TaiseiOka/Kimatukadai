@@ -8,17 +8,22 @@
 #include <curses.h>
 int main(int argc, char *argv[])
 {
-	//CSVtranceINI("2019data.csv", "2019data.ini");
-	//CSVtranceINI("2018data.csv", "2018data.ini");
-	//CSVtranceINI("2017data.csv", "2017data.ini");
+	//CSVファイル入力
+	if (readDouble("AverageCloudAmount", "1/1", 100, "2019data.ini") == 100 || readDouble("AverageCloudAmount", "1/1", 100, "2019data.ini") == NULL) {
+		CSVtranceINI("2019data.csv", "2019data.ini");
+		CSVtranceINI("2018data.csv", "2018data.ini");
+		CSVtranceINI("2017data.csv", "2017data.ini");
+	}
 
-	//cursesの動作
 	char *str = "Weather Forcast";
 
+	//入力データ変数
 	int inmonth, inday;
 	char inDay[CHARBUFF];
 	double forcastData[NUMDATA];
 
+
+	//コンソール入力
 	fprintf_s(stdout, "Input month and day\n");
 	while (1) {
 		fprintf_s(stdout, "month = ");
@@ -50,6 +55,24 @@ int main(int argc, char *argv[])
 
 	inputData(inDay, forcastData);
 
+	//ファイル出力
+	if (forcastData[0] == 1 && forcastData[2] < 3) {
+		writeChar(inDay, "ForcastWeather", " Snowy", "kekka.ini");
+	}
+	else if (forcastData[0] == 1) {
+		writeChar(inDay, "ForcastWeather", " Rainy", "kekka.ini");
+	}
+	else if (forcastData[0] == 2) {
+		writeChar(inDay, "ForcastWeather", " Cloudy", "kekka.ini");
+	}
+	else {
+		writeChar(inDay, "ForcastWeather", " Suny", "kekka.ini");
+	}
+	writeDouble(inDay, "MaxTemperature", forcastData[1], "kekka.ini");
+	writeDouble(inDay, "MinTemperature", forcastData[2], "kekka.ini");
+	
+
+	//cursesの動作
 
 	// 初期化
 	if (initscr() == NULL) {
@@ -75,19 +98,19 @@ int main(int argc, char *argv[])
 	cbreak();
 	keypad(stdscr, TRUE);
 
+	//cursus内で使用する変数
 	int key;
 	int month,day;
-
-
 	int screenNum = 0;
 
 	while (true) {
 		
 		switch (screenNum)
 		{
-		case 0:
+		case 0://月の入力
 			// 画面をクリア
-			erase();
+			erase();
+
 			// 初期画面
 
 			attrset(COLOR_PAIR(4));
@@ -102,10 +125,16 @@ int main(int argc, char *argv[])
 			mvaddstr(11, 61, "Day");
 
 			attrset(COLOR_PAIR(12));
-			mvprintw(15, 49, "RETURN KEY = LEFT");
+			mvprintw(15, 49, "INPUT KEY = NUMBER KEY");
 			attrset(COLOR_PAIR(12));
-			mvprintw(16, 49, "DECIDED KEY = E");
+			mvprintw(16, 49, "INPUT DAY KEY = RIGHT");
+			attrset(COLOR_PAIR(12));
+			mvprintw(17, 49, "RETURN KEY = LEFT");
+			attrset(COLOR_PAIR(12));
+			mvprintw(18, 49, "DECIDED KEY = E");
 
+			attrset(COLOR_PAIR(3));
+			mvaddstr(12, 56, "^");
 
 			// 画面を更新
 			refresh();
@@ -128,6 +157,10 @@ int main(int argc, char *argv[])
 					}
 					if (key == KEY_RIGHT) {
 						screenNum = 1;
+						attrset(COLOR_PAIR(3));
+						mvaddstr(12, 56, " ");
+						attrset(COLOR_PAIR(3));
+						mvaddstr(12, 67, "^");
 						break;
 					}
 					else if (key == KEY_LEFT) {
@@ -138,14 +171,16 @@ int main(int argc, char *argv[])
 			}
 
 			break;
-		case 1:
+		case 1://日の入力
 			key = getch();
 			day = 0;
+
 
 			if (key == '1' || key == '2' || key == '3' || key == '4' || key == '5' || key == '6' || key == '7' || key == '8' || key == '9') {
 				attrset(COLOR_PAIR(3));
 				day = key - 48;
 				mvprintw(11, 67, "%d", day);
+	
 				// 画面を更新
 				refresh();
 				while (1) {
@@ -171,11 +206,15 @@ int main(int argc, char *argv[])
 				}
 			}
 			break;
-		case 2:
+		case 2://出力画面
 			
 			// 画面をクリア
-			erase();			//結果出力画面			attrset(COLOR_PAIR(12));
-			mvaddstr(9, 50, "Forcast Result");			//入力された日から天気を予測			
+			erase();
+
+			//結果出力画面
+			attrset(COLOR_PAIR(12));
+			mvaddstr(9, 50, "Forcast Result");
+			
 
 			attrset(COLOR_PAIR(12));
 			mvaddstr(7, 56, inDay);
@@ -289,6 +328,7 @@ void CSVtranceINI(const char *fileName, const char *inifileName) {
 	}
 }
 
+//天気を予測する
 void weatherForcast(struct dayData *data, double forcastdata[NUMDATA]) {
 	int cntRain = 0;
 	int cntCloudy = 0;
@@ -305,8 +345,6 @@ void weatherForcast(struct dayData *data, double forcastdata[NUMDATA]) {
 		}
 		data = data->nextYear;
 	}
-
-	fprintf_s(stdout, "sun = %d  rain = %d cloudy = %d\n", cntSun, cntRain, cntCloudy);
 
 	if (cntRain >= cntSun && cntRain >= cntCloudy) {
 		forcastdata[0] = 1;//雨
@@ -340,7 +378,7 @@ void aveTemperature(struct dayData *data , double forcastdata[NUMDATA]) {
 	forcastdata[2] = aveMin;
 
 }
-//データを構造体に入れる。
+//予測結果データを出力。
 void inputData(const char *day, double forcastdata[NUMDATA]) {
 	
 	char fileName[CHARBUFF];
